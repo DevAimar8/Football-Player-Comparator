@@ -1,131 +1,238 @@
-# Football Advanced Comparator — Vercel Edition
+# Football Advanced Comparator — Kaggle Ready
 
-Comparador global de estadísticas avanzadas de futbolistas para usar en cualquier vídeo, equipo, liga o mercado.
+Comparador avanzado de futbolistas para scouting, análisis y rankings por rol.
 
-Está pensado para funcionar gratis:
-
-- Sin Streamlit.
-- Sin pandas.
-- Sin base de datos.
-- Sin backend obligatorio.
-- Sin librerías externas.
-- Listo para subir a Vercel como web estática.
-
-La app funciona directamente en el navegador con HTML, CSS y JavaScript puro.
-
-## Qué puedes hacer
-
-- Subir un CSV con jugadores de cualquier liga.
-- Comparar jugadores de todo el mundo.
-- Filtrar por posición, liga, edad, minutos, valor de mercado y contrato.
-- Elegir un rol:
-  - Delantero finalizador
-  - Delantero asociativo
-  - Extremo desequilibrante
-  - Mediocentro creador
-  - Pivote defensivo
-  - Central corrector
-  - Central con salida de balón
-  - Lateral ofensivo
-  - Portero
-- Calcular métricas por 90 minutos.
-- Calcular porcentajes: acierto a puerta, goles por disparo, duelos ganados, duelos aéreos, precisión de pase.
-- Usar métricas avanzadas reales si existen:
-  - xG
-  - npxG
-  - xA
-  - pases progresivos
-  - conducciones progresivas
-  - presiones
-  - presiones exitosas
-  - toques en área
-- Crear proxies cuando no existan datos premium.
-- Mostrar score global, score ajustado por liga, confianza del dato y explicación.
-- Comparar dos jugadores con radar SVG.
-- Exportar el ranking resultante a CSV.
-
-## Estructura
+Esta versión incluye una web estática lista para Vercel y un pipeline opcional para generar `data/players_advanced.csv` desde KaggleHub usando el dataset:
 
 ```text
-football_advanced_comparator_vercel/
-├── index.html
-├── styles.css
-├── app.js
-├── vercel.json
-├── data/
-│   ├── demo_players.csv
-│   └── template_players.csv
-├── tools/
-│   └── validate_csv.py
-└── README.md
+davidcariboo/player-scores
 ```
 
-## Subir a Vercel
+## Qué incluye
 
-1. Crea un repositorio en GitHub.
-2. Sube todos estos archivos.
-3. Entra en Vercel.
-4. Importa el repositorio.
-5. Framework Preset: **Other**.
-6. Build Command: vacío.
-7. Output Directory: vacío o `.`
-8. Deploy.
+- `index.html`: app web.
+- `styles.css`: estilos.
+- `app.js`: modelo de scoring, filtros, radar y exportación.
+- `data/demo_players.csv`: datos demo.
+- `data/players_advanced.csv`: placeholder inicial. Se reemplaza al ejecutar el pipeline.
+- `tools/download_player_scores.py`: descarga el dataset de Kaggle.
+- `tools/build_players_advanced.py`: genera el CSV maestro.
+- `requirements.txt`: dependencias para el pipeline.
+- `vercel.json`: configuración para deploy estático.
 
-También puedes arrastrar la carpeta a Vercel desde el panel si usas deploy manual.
+## Importante sobre los datos
 
-## Cómo usarlo
-
-1. Abre la web.
-2. Pulsa **Cargar demo** o sube tu propio CSV.
-3. Elige un rol.
-4. Ajusta filtros.
-5. Ordena por score.
-6. Selecciona jugadores para compararlos.
-
-## Formato del CSV
-
-Puedes usar `data/template_players.csv` como plantilla.
-
-Columnas mínimas:
+El dataset `davidcariboo/player-scores` es muy útil para crear una base global de futbolistas con:
 
 ```text
-player,team,league,country,season,position,age,minutes
+jugadores
+clubes
+ligas
+países
+edades
+posiciones
+valores de mercado
+minutos
+goles
+asistencias
+tarjetas
+apariciones
+historial básico
 ```
 
-Columnas recomendadas:
+Pero no es Wyscout, Opta ni StatsBomb.
+
+Normalmente no trae métricas como:
 
 ```text
-market_value_eur,contract_status,goals,penalty_goals,assists,xg,npxg,xa,shots,shots_on_target,key_passes,progressive_passes,progressive_carries,passes_into_final_third,passes_into_box,touches_box,accurate_passes,attempted_passes,long_balls_completed,long_balls_attempted,pressures,successful_pressures,tackles,interceptions,blocks,clearances,duels_won,duels_total,aerials_won,aerials_total,carries_into_final_third,carries_into_box,dispossessed,miscontrols,fouls,yellow_cards,red_cards,save_pct,goals_prevented,clean_sheets,starts,appearances
+xG real
+xA real
+presiones reales
+pases progresivos reales
+conducciones progresivas reales
+tracking
+carreras sin balón
+duelos detallados por zona
 ```
 
-## Alias de columnas
+La herramienta funciona así:
 
-El sistema acepta nombres tipo FBref o genéricos. Por ejemplo:
+1. Si tu CSV trae métricas avanzadas reales, las usa directamente.
+2. Si no las trae, crea proxies y baja la confianza del dato.
+3. Te muestra un ranking útil, pero transparente.
 
-- `Player` → `player`
-- `Squad` → `team`
-- `Comp` → `league`
-- `Pos` → `position`
-- `Min` → `minutes`
-- `Gls` → `goals`
-- `Ast` → `assists`
-- `Sh` → `shots`
-- `SoT` → `shots_on_target`
-- `xG` → `xg`
-- `npxG` → `npxg`
-- `xAG` → `xa`
-- `PrgP` → `progressive_passes`
-- `PrgC` → `progressive_carries`
+## Instalar dependencias para generar datos
 
-## Importante
+```bash
+pip install -r requirements.txt
+```
 
-Esta herramienta no inventa que tiene Wyscout gratis.
+## Descargar dataset de Kaggle
 
-Hace esto:
+```bash
+python tools/download_player_scores.py
+```
 
-1. Usa datos avanzados reales si vienen en tu CSV.
-2. Si no existen, crea proxies razonables.
-3. Marca la confianza del dato.
-4. Te deja comparar jugadores de manera transparente.
+El script incluye exactamente este bloque:
 
-Para categorías como Primera RFEF, esto es lo más realista si quieres trabajar gratis.
+```python
+import kagglehub
+
+# Download latest version
+path = kagglehub.dataset_download("davidcariboo/player-scores")
+
+print("Path to dataset files:", path)
+```
+
+## Generar `players_advanced.csv`
+
+```bash
+python tools/build_players_advanced.py
+```
+
+El script genera dos archivos:
+
+```text
+data/players_advanced.csv
+players_advanced.csv
+```
+
+Dentro del script está incluida la línea que pediste:
+
+```python
+df.to_csv("players_advanced.csv", index=False)
+```
+
+Y también guarda el archivo dentro de `data/`, que es lo que usa la web:
+
+```python
+df.to_csv(output_path, index=False)
+```
+
+## Usar en local
+
+```bash
+python -m http.server 8000
+```
+
+Después abre:
+
+```text
+http://localhost:8000
+```
+
+En la web puedes usar:
+
+```text
+Cargar demo
+Cargar players_advanced.csv
+Subir CSV propio
+```
+
+## Deploy en Vercel
+
+Flujo recomendado:
+
+```text
+1. Ejecuta en local: pip install -r requirements.txt
+2. Ejecuta: python tools/build_players_advanced.py
+3. Verifica que existe data/players_advanced.csv
+4. Sube todo a GitHub
+5. Importa el repo en Vercel
+6. Framework Preset: Other
+7. Build Command: vacío
+8. Output Directory: vacío o .
+9. Deploy
+```
+
+Vercel no ejecuta el scraper de Kaggle en esta versión. La idea es generar el CSV en local y subirlo ya creado.
+
+## Actualizar datos
+
+Cuando quieras actualizar:
+
+```bash
+python tools/build_players_advanced.py
+git add data/players_advanced.csv
+git commit -m "Update players advanced data"
+git push
+```
+
+Vercel redesplegará la app con los datos nuevos.
+
+## Columnas del CSV maestro
+
+```text
+player
+team
+league
+country
+season
+position
+age
+minutes
+market_value_eur
+contract_status
+goals
+penalty_goals
+assists
+xg
+npxg
+xa
+shots
+shots_on_target
+key_passes
+progressive_passes
+progressive_carries
+passes_into_final_third
+passes_into_box
+touches_box
+accurate_passes
+attempted_passes
+long_balls_completed
+long_balls_attempted
+pressures
+successful_pressures
+tackles
+interceptions
+blocks
+clearances
+duels_won
+duels_total
+aerials_won
+aerials_total
+carries_into_final_third
+carries_into_box
+dispossessed
+miscontrols
+fouls
+yellow_cards
+red_cards
+save_pct
+goals_prevented
+clean_sheets
+starts
+appearances
+source
+```
+
+## Cómo conseguir estadística avanzada real
+
+Para enriquecer el CSV, puedes unir `players_advanced.csv` con datos de:
+
+```text
+FBref/Kaggle: xG, xA, tiros, pases, progresivos, defensa
+StatsBomb Open Data: eventos avanzados de competiciones concretas
+Sofascore/FotMob/AiScore: datos exportados/manuales
+Transfermarkt/player-scores: edad, club, valor, mercado
+```
+
+El objetivo es que todo acabe en un único CSV compatible con la web.
+
+## Filosofía
+
+No busca vender humo.
+
+Si hay datos avanzados reales, los usa.
+
+Si no hay datos avanzados reales, calcula proxies, baja la confianza y te deja comparar con contexto.

@@ -225,7 +225,7 @@ const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   [
-    "csvFile", "loadDemo", "downloadTemplate", "datasetStatus", "roleSelect",
+    "csvFile", "loadDemo", "loadAdvanced", "downloadTemplate", "datasetStatus", "roleSelect",
     "scopeSelect", "leagueAdjust", "sortBy", "searchInput", "leagueFilter",
     "positionFilter", "contractFilter", "minMinutes", "maxAge", "maxValue",
     "topN", "runModel", "exportCsv", "loadedCount", "filteredCount", "bestPlayer",
@@ -236,6 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   els.csvFile.addEventListener("change", handleFile);
   els.loadDemo.addEventListener("click", loadDemo);
+  els.loadAdvanced.addEventListener("click", loadAdvanced);
   els.downloadTemplate.addEventListener("click", () => downloadFile("data/template_players.csv", "template_players.csv"));
   els.runModel.addEventListener("click", runModel);
   els.exportCsv.addEventListener("click", exportRanking);
@@ -263,6 +264,21 @@ async function loadDemo() {
   const text = await res.text();
   rawPlayers = normalizeRows(parseCsv(text));
   onDatasetLoaded("Demo cargada");
+}
+
+
+async function loadAdvanced() {
+  try {
+    const res = await fetch("data/players_advanced.csv", { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("No se encontró data/players_advanced.csv. Ejecuta: python tools/build_players_advanced.py");
+    }
+    const text = await res.text();
+    rawPlayers = normalizeRows(parseCsv(text));
+    onDatasetLoaded("players_advanced.csv cargado");
+  } catch (error) {
+    els.datasetStatus.textContent = error.message;
+  }
 }
 
 function handleFile(event) {
@@ -515,12 +531,20 @@ function enrichPlayer(p) {
 function estimateNpxg(p, notes) {
   notes.push("npxG proxy");
   if (has(p.xg)) return Math.max(num(p.xg) - num(p.penalty_goals) * 0.76, 0);
-  return Math.max((num(p.shots_on_target) * 0.22) + ((num(p.shots) - num(p.shots_on_target)) * 0.06), 0);
+  if (has(p.shots) || has(p.shots_on_target)) {
+    return Math.max((num(p.shots_on_target) * 0.22) + ((num(p.shots) - num(p.shots_on_target)) * 0.06), 0);
+  }
+  // Fallback para datasets globales básicos como player-scores: no es xG real.
+  return Math.max((num(p.goals) - num(p.penalty_goals)) * 0.85, 0);
 }
 
 function estimateXa(p, notes) {
   notes.push("xA proxy");
-  return Math.max(num(p.key_passes) * 0.075 + num(p.assists) * 0.18 + num(p.passes_into_box) * 0.015, 0);
+  if (has(p.key_passes) || has(p.passes_into_box)) {
+    return Math.max(num(p.key_passes) * 0.075 + num(p.assists) * 0.18 + num(p.passes_into_box) * 0.015, 0);
+  }
+  // Fallback para datasets con solo asistencias: no es xA real.
+  return Math.max(num(p.assists) * 0.75, 0);
 }
 
 function estimateProgressivePasses(p, notes) {
